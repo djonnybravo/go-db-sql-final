@@ -45,23 +45,25 @@ func TestAddGetDelete(t *testing.T) {
 
 	// add
 	// добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
-	newId, err := store.Add(parcel)
+	p, err := store.Add(parcel)
 	require.NoError(t, err)
-	require.NotEmpty(t, newId)
+	require.NotEmpty(t, p)
 	// get
 	// получите только что добавленную посылку, убедитесь в отсутствии ошибки
 	// проверьте, что значения всех полей в полученном объекте совпадают со значениями полей в переменной parcel
-	get, err := store.Get(newId)
+	get, err := store.Get(p)
+	parcel.Number = p
 	require.NoError(t, err)
 	require.Equal(t, parcel, get)
+
 	// delete
 	// удалите добавленную посылку, убедитесь в отсутствии ошибки
 	// проверьте, что посылку больше нельзя получить из БД
-	err = store.Delete(newId)
+	err = store.Delete(p)
 	require.NoError(t, err)
-	_, err = store.Get(newId)
+	_, err = store.Get(p)
 	require.Error(t, err)
-	require.Equal(t, sql.ErrNoRows, err)
+	require.ErrorIs(t, err, sql.ErrNoRows)
 
 }
 
@@ -167,7 +169,7 @@ func TestGetByClient(t *testing.T) {
 	// get by client
 	storedParcels, err := store.GetByClient(client) // получите список посылок по идентификатору клиента, сохранённого в переменной client
 	require.NoError(t, err)
-	require.Equal(t, parcels, len(storedParcels))
+	require.Len(t, parcels, len(storedParcels))
 	// убедитесь в отсутствии ошибки
 	// убедитесь, что количество полученных посылок совпадает с количеством добавленных
 
@@ -176,7 +178,7 @@ func TestGetByClient(t *testing.T) {
 		// в parcelMap лежат добавленные посылки, ключ - идентификатор посылки, значение - сама посылка
 		// убедитесь, что все посылки из storedParcels есть в parcelMap
 		// убедитесь, что значения полей полученных посылок заполнены верно
-		_, isOk := parcelMap[parcel.Client]
+		_, isOk := parcelMap[parcel.Number]
 		require.True(t, isOk)
 		require.Contains(t, parcelMap, parcel.Number)
 		require.Equal(t, parcel, parcelMap[parcel.Number])
