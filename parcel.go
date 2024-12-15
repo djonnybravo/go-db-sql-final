@@ -36,7 +36,7 @@ func (s ParcelStore) Get(number int) (Parcel, error) {
 	p := Parcel{}
 	err := row.Scan(&p.Number, &p.Client, &p.Status, &p.Address, &p.CreatedAt)
 	if err != nil {
-		return p, fmt.Errorf("не удалось получить данные из строки, %w", err)
+		return Parcel{}, fmt.Errorf("не удалось получить данные из строки, %w", err)
 	}
 
 	return p, nil
@@ -45,12 +45,12 @@ func (s ParcelStore) Get(number int) (Parcel, error) {
 func (s ParcelStore) GetByClient(client int) ([]Parcel, error) {
 	// реализуйте чтение строк из таблицы parcel по заданному client
 	// здесь из таблицы может вернуться несколько строк
-	rows, err := s.db.Query("SELECT * FROM parcel WHERE client = ?", client)
+	rows, err := s.db.Query("SELECT number, client, status, address, created_at FROM parcel WHERE client = ?", client)
 	// заполните срез Parcel данными из таблицы
-
 	if err != nil {
 		return nil, fmt.Errorf("не удалось получить записи по заданному client: %w", err)
 	}
+
 	var res []Parcel
 	for rows.Next() {
 		p := Parcel{}
@@ -59,6 +59,9 @@ func (s ParcelStore) GetByClient(client int) ([]Parcel, error) {
 			return nil, fmt.Errorf("не записать данные из строки: %w", err)
 		}
 		res = append(res, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("не удалось получить данные: %w", err)
 	}
 	return res, nil
 }
@@ -75,7 +78,7 @@ func (s ParcelStore) SetStatus(number int, status string) error {
 func (s ParcelStore) SetAddress(number int, address string) error {
 	// реализуйте обновление адреса в таблице parcel
 	// менять адрес можно только если значение статуса registered
-	_, err := s.db.Exec("UPDATE parcel SET address = ? WHERE number = ?", address, number)
+	_, err := s.db.Exec("UPDATE parcel SET address = ? WHERE number = ? AND status = ?", address, number, ParcelStatusRegistered)
 	if err != nil {
 		return fmt.Errorf("не удалось обновить данные: %w", err)
 	}
